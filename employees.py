@@ -1,6 +1,6 @@
 import psycopg2
 from tkinter import *
-from tkcalendar import Calendar
+from tkcalendar import Calendar, DateEntry
 from datetime import date
 
 def reset_window():
@@ -43,7 +43,14 @@ def create_db():
 
 def submit_form(f_name,l_name,date,team,inactive,position,upcoming):
     try:
-        cur.execute("INSERT INTO employees (id, first_name,last_name,start_date,team,inactive,position_id,upcoming_id) VALUES (%s::int,%s, %s, %s, NULLIF(%s,'')::int, %s, NULLIF(%s,'')::int, NULLIF(%s,'')::int)", (f_name,l_name,date,team,inactive,position,upcoming))
+        insert_sql = '''
+            INSERT INTO employees (id, first_name,last_name,start_date,team,inactive,position_id,upcoming_id)
+            VALUES (%s::int,%s, %s, %s, NULLIF(%s,'')::int, %s, NULLIF(%s,'')::int, NULLIF(%s,'')::int)
+            ON CONFLICT (id) DO UPDATE SET
+            (first_name,last_name,start_date,team,inactive,position_id,upcoming_id) = (EXCLUDED.first_name, EXCLUDED.last_name, EXCLUDED.start_date, EXCLUDED.team, EXCLUDED.inactive, EXCLUDED.position_id, EXCLUDED.upcoming_id);
+        '''
+        cur.execute(insert_sql, (f_name,l_name,date,team,inactive,position,upcoming))
+        # cur.execute("INSERT INTO employees (id, first_name,last_name,start_date,team,inactive,position_id,upcoming_id) VALUES (%s::int,%s, %s, %s, NULLIF(%s,'')::int, %s, NULLIF(%s,'')::int, NULLIF(%s,'')::int)", (f_name,l_name,date,team,inactive,position,upcoming))
     except:
         print("Unable to add item to database")
 
@@ -58,21 +65,30 @@ def employee_form(emp=(None,'','', date.today(), None, False, None, None)):
 
     f_name = Entry(canvas, width=30)
     f_name.grid(row=1, column=1)
-    f_name.insert(0,emp[1])
+    f_name.insert(0,'' if emp[1] == None else emp[1])
+
 
     l_name = Entry(canvas, width=30)
     l_name.grid(row=2, column=1)
-    l_name.insert(0,emp[2])
+    l_name.insert(0,'' if emp[2] == None else emp[2])
     
     team = Entry(canvas, width=30)
     team.grid(row=3, column=1)
+    team.insert(0,'' if emp[4] == None else emp[4])
+
     position = Entry(canvas, width=30)
     position.grid(row=4, column=1)
+    position.insert(0,'' if emp[6] == None else emp[6])
+
     upcoming = Entry(canvas, width=30)
     upcoming.grid(row=5, column=1)
-    date = Calendar(canvas, date_pattern="yyyy-mm-dd")
+    upcoming.insert(0,'' if emp[7] == None else emp[7])
+
+    date = DateEntry(canvas, date_pattern="yyyy-mm-dd")
     date.grid(row=6, column=1)
-    inactive_var = StringVar()
+    date.set_date(emp[3])
+
+    inactive_var = "FALSE" if emp[5] else "TRUE"
     inactive = Checkbutton(canvas, offvalue="FALSE", onvalue="TRUE", variable=inactive_var)
     inactive.grid(row=7, column=1)
 
@@ -142,8 +158,9 @@ def list_employees():
         date.grid(row=i+1, column=6)
         inactive = Label(canvas, text=emp[5])
         inactive.grid(row=i+1, column=7)
-        edit = Button(canvas, text="Edit", width=10, command=lambda : employee_form(emp))
+        edit = Button(canvas, text="Edit", width=10, command=lambda current_emp=emp : employee_form(current_emp))
         edit.grid(row=i+1, column=8)
+        print(emp)
 
     print(emp_list)
     root.mainloop()
