@@ -41,7 +41,7 @@ def create_db():
 
     conn.commit()
 
-def submit_form(f_name,l_name,date,team,inactive,position,upcoming):
+def submit_form(eid,f_name,l_name,date,team,inactive,position,upcoming):
     try:
         insert_sql = '''
             INSERT INTO employees (id, first_name,last_name,start_date,team,inactive,position_id,upcoming_id)
@@ -49,19 +49,21 @@ def submit_form(f_name,l_name,date,team,inactive,position,upcoming):
             ON CONFLICT (id) DO UPDATE SET
             (first_name,last_name,start_date,team,inactive,position_id,upcoming_id) = (EXCLUDED.first_name, EXCLUDED.last_name, EXCLUDED.start_date, EXCLUDED.team, EXCLUDED.inactive, EXCLUDED.position_id, EXCLUDED.upcoming_id);
         '''
-        cur.execute(insert_sql, (f_name,l_name,date,team,inactive,position,upcoming))
-        # cur.execute("INSERT INTO employees (id, first_name,last_name,start_date,team,inactive,position_id,upcoming_id) VALUES (%s::int,%s, %s, %s, NULLIF(%s,'')::int, %s, NULLIF(%s,'')::int, NULLIF(%s,'')::int)", (f_name,l_name,date,team,inactive,position,upcoming))
-    except:
-        print("Unable to add item to database")
+        cur.execute(insert_sql, (eid, f_name,l_name,date,team,inactive,position,upcoming))
+    # cur.execute("INSERT INTO employees (id, first_name,last_name,start_date,team,inactive,position_id,upcoming_id) VALUES (%s::int,%s, %s, %s, NULLIF(%s,'')::int, %s, NULLIF(%s,'')::int, NULLIF(%s,'')::int)", (f_name,l_name,date,team,inactive,position,upcoming))
+    except Exception as ex:
+        print(ex)
 
     conn.commit()
+    list_employees()
 
 def employee_form(emp=(None,'','', date.today(), None, False, None, None)):
     reset_window()
     # Create text boxes
     eid = Entry(canvas, width=30)
     eid.grid(row=0, column=1)
-    eid.insert(0,'' if emp[0] == None else emp[0])
+    eid.insert(0,emp[0] if emp[0] else '')
+    if emp[0]: eid.config(state='readonly')
 
     f_name = Entry(canvas, width=30)
     f_name.grid(row=1, column=1)
@@ -94,7 +96,7 @@ def employee_form(emp=(None,'','', date.today(), None, False, None, None)):
 
     back = Button(canvas, text="Back", width=10, command=lambda : list_employees())
     back.grid(row=8, column=0)
-    submit = Button(canvas, text="Submit", width=10, command=lambda : submit_form(f_name.get(),l_name.get(),date.get_date(),team.get(),inactive_var.get(),position.get(),upcoming.get()))
+    submit = Button(canvas, text="Submit", width=10, command=lambda : submit_form(eid.get(), f_name.get(), l_name.get(), date.get_date(), team.get(), inactive_var, position.get(), upcoming.get()))
     submit.grid(row=8, column=1)
 
     # Create text labels
@@ -160,9 +162,12 @@ def list_employees():
         inactive.grid(row=i+1, column=7)
         edit = Button(canvas, text="Edit", width=10, command=lambda current_emp=emp : employee_form(current_emp))
         edit.grid(row=i+1, column=8)
-        print(emp)
 
-    print(emp_list)
+        if i == len(emp_list)-1:
+            back = Button(canvas, text="New Employee", width=10, command=lambda : employee_form())
+            back.grid(row=i+2, column=0)
+
+    # print(emp_list)
     root.mainloop()
 
 root = Tk()
