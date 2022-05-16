@@ -1,7 +1,7 @@
 import psycopg2
 from tkinter import *
-from tkcalendar import Calendar, DateEntry
-from datetime import date, datetime
+from tkcalendar import DateEntry
+from datetime import date, timedelta
 
 def reset_window():
     for widget in canvas.winfo_children():
@@ -21,7 +21,15 @@ def create_db():
             promoted BOOLEAN,
             inactive BOOLEAN
         );
+        CREATE TABLE positions (
+            pos_id bool PRIMARY KEY DEFAULT TRUE
+            total INT NOT NULL,
+            open INT NOT NULL,
+            CONSTRAINT one_row_pos CHECK (pos_id)
+        );
+        REVOKE DELETE, TRUNCATE ON positions FROM public;
         INSERT INTO employees (id, first_name, last_name, start_date, team, promoted, inactive) VALUES (101,'Sam','Fisher','2022-03-13', 1, FALSE, FALSE), (113,'Steve','Jobs','2022-04-22', 2, FALSE, FALSE);
+        INSERT INTO positions (total, open) VALUES (0, 0)
         """)
     except Exception as ex:
         print(ex)
@@ -56,8 +64,8 @@ def employee_form(emp=(None,'','', date.today(), None, False, False)):
     team = make_entry(canvas, emp[4], 3, 1)
 
     date = DateEntry(canvas, date_pattern="yyyy-mm-dd")
-    date.grid(row=4, column=1)
     date.set_date(emp[3])
+    date.grid(row=4, column=1)
 
     promoted_var = IntVar(canvas, 1 if emp[5] else 0)
     promoted = Checkbutton(canvas, variable=promoted_var)
@@ -102,38 +110,64 @@ def date_colors(emp_date):
         return "yellow"
     return "white"
 
+def get_position_counts():
+    nine_ago = date.today() - timedelta(days=274)
+    year_ago = date.today() - timedelta(days=365)
+    cur.execute("""
+    SELECT COUNT(*) FROM employees WHERE
+        start_date <= %s AND start_date > %s
+    """, (nine_ago, year_ago))
+    yellow_count = cur.fetchone()
+    cur.execute("SELECT COUNT(*) FROM employees WHERE start_date < %s", (year_ago,))
+    red_count = cur.fetchone()
+    return yellow_count[0], red_count[0]
+
 def list_employees():
     reset_window()
     cur.execute("SELECT * FROM employees;")
     emp_list = cur.fetchall()
+    new_emp = Button(canvas, text="New Employee", command=lambda : employee_form())
+    new_emp.pack()
     
-    make_label(canvas, "Employee ID", 0, 0)
-    make_label(canvas, "First Name", 0, 1)
-    make_label(canvas, "Last Name", 0, 2)
-    make_label(canvas, "Team #", 0, 3)
-    make_label(canvas, "Start Date", 0, 4)
-    make_label(canvas, "Promoted", 0, 5)
-    make_label(canvas, "Inactive", 0, 6)
-    make_label(canvas, "Edit Info", 0, 7)
+    grid_canvas = Canvas(canvas)
+    grid_canvas.pack()
+
+    pos_canvas = Canvas(canvas)
+    pos_canvas.pack()
+
+    make_label(grid_canvas, "Employee ID", 0, 0)
+    make_label(grid_canvas, "Last Name", 0, 1)
+    make_label(grid_canvas, "First Name", 0, 2)
+    make_label(grid_canvas, "Team #", 0, 3)
+    make_label(grid_canvas, "Start Date", 0, 4)
+    make_label(grid_canvas, "Promoted", 0, 5)
+    make_label(grid_canvas, "Inactive", 0, 6)
+    make_label(grid_canvas, "Edit Info", 0, 7)
 
     # (id, first_name, last_name, start_date, team, promoted, inactive)
     for i, emp in enumerate(emp_list):
-        make_label(canvas, emp[0], i+1, 0) # Employee ID
-        make_label(canvas, emp[1], i+1, 1) # First name
-        make_label(canvas, emp[2], i+1, 2) # Last name
-        make_label(canvas, emp[4], i+1, 3) # Team number
-        make_label(canvas, emp[3], i+1, 4, date_colors(emp[3])) # Start date
-        make_label(canvas, emp[5], i+1, 5) # promoted
-        make_label(canvas, emp[6], i+1, 6) # inactive
+        make_label(grid_canvas, emp[0], i+1, 0) # Employee ID
+        make_label(grid_canvas, emp[2], i+1, 1) # Last name
+        make_label(grid_canvas, emp[1], i+1, 2) # First name
+        make_label(grid_canvas, emp[4], i+1, 3) # Team number
+        make_label(grid_canvas, emp[3], i+1, 4, date_colors(emp[3])) # Start date
+        make_label(grid_canvas, emp[5], i+1, 5) # promoted
+        make_label(grid_canvas, emp[6], i+1, 6) # inactive
 
-        edit = Button(canvas, text="Edit", width=10, command=lambda current_emp=emp : employee_form(current_emp))
+        edit = Button(grid_canvas, text="Edit", width=10, command=lambda current_emp=emp : employee_form(current_emp))
         edit.grid(row=i+1, column=7)
 
-        if i == len(emp_list)-1:
-            back = Button(canvas, text="New Employee", command=lambda : employee_form())
-            back.grid(row=i+2, column=0)
-
     # print(emp_list)
+    upcoming, pending = get_position_counts()
+
+    make_label(pos_canvas, "Total Positions: ", 0, 0)
+    make_label(pos_canvas, "XXX", 0, 1)
+    make_label(pos_canvas, "Open Positions: ", 1, 0)
+    make_label(pos_canvas, "XXX", 1, 1)
+    make_label(pos_canvas, "Pending Promotions: ", 0, 2)
+    make_label(pos_canvas, pending, 0, 3)
+    make_label(pos_canvas, "Upcoming Openings: ", 1, 2)
+    make_label(pos_canvas, upcoming, 1, 3)
     root.mainloop()
 
 
