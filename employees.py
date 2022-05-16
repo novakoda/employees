@@ -122,6 +122,30 @@ def get_position_counts():
     red_count = cur.fetchone()
     return yellow_count[0], red_count[0]
 
+def position_form(total, open):
+    reset_window()
+    make_label(canvas, "Total Positions", 0, 0)
+    make_label(canvas, "Open Positions", 1, 0)
+    total_positions = make_entry(canvas, total, 0, 1)
+    open_positions = make_entry(canvas, open, 1, 1)
+
+    back = Button(canvas, text="Back", width=10, command=lambda : list_employees())
+    back.grid(row=3, column=0)
+    submit = Button(canvas, text="Submit", width=10, command=lambda : update_positions(total_positions.get(), open_positions.get()))
+    submit.grid(row=3, column=1)
+
+def update_positions(total, open):
+    try:
+        pos_sql = """UPDATE positions SET (total, open) = (%s::int, %s::int) WHERE pos_id = True"""
+        cur.execute(pos_sql, (total, open))
+        
+    except Exception as ex:
+        print(ex)
+
+    conn.commit()
+    list_employees()
+
+
 def list_employees():
     reset_window()
     cur.execute("SELECT * FROM employees;")
@@ -158,16 +182,20 @@ def list_employees():
         edit.grid(row=i+1, column=7)
 
     # print(emp_list)
+    cur.execute("SELECT * FROM positions")
+    data = cur.fetchone()
     upcoming, pending = get_position_counts()
 
-    make_label(pos_canvas, "Total Positions: ", 0, 0)
-    make_label(pos_canvas, "XXX", 0, 1)
-    make_label(pos_canvas, "Open Positions: ", 1, 0)
-    make_label(pos_canvas, "XXX", 1, 1)
-    make_label(pos_canvas, "Pending Promotions: ", 0, 2)
-    make_label(pos_canvas, pending, 0, 3)
-    make_label(pos_canvas, "Upcoming Openings: ", 1, 2)
-    make_label(pos_canvas, upcoming, 1, 3)
+    edit_pos = Button(pos_canvas, text="Edit Positions", command=lambda : position_form(data[1], data[2]))
+    edit_pos.grid(row=0, column=0)
+    make_label(pos_canvas, "Total Positions: ", 0, 1)
+    make_label(pos_canvas, data[1], 0, 2)
+    make_label(pos_canvas, "Open Positions: ", 1, 1)
+    make_label(pos_canvas, data[2], 1, 2)
+    make_label(pos_canvas, "Pending Promotions: ", 0, 3)
+    make_label(pos_canvas, pending, 0, 4)
+    make_label(pos_canvas, "Upcoming Openings: ", 1, 3)
+    make_label(pos_canvas, upcoming, 1, 4)
     root.mainloop()
 
 
