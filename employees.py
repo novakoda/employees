@@ -75,10 +75,8 @@ def employee_form(emp=(None,'','', date.today(), None, False, False)):
     inactive = Checkbutton(canvas, variable=inactive_var)
     inactive.grid(row=6, column=1)
 
-    back = Button(canvas, text="Back", width=10, command=lambda : list_employees())
-    back.grid(row=7, column=0)
-    submit = Button(canvas, text="Submit", width=10, command=lambda : submit_form(eid.get(), f_name.get(), l_name.get(), date.get_date(), team.get(), "TRUE" if promoted_var.get() else "FALSE", "TRUE" if inactive_var.get() else "FALSE"))
-    submit.grid(row=7, column=1)
+    make_button(canvas, "Back", lambda : list_employees(), 7, 0)
+    make_button(canvas, "Submit", lambda : submit_form(eid.get(), f_name.get(), l_name.get(), date.get_date(), team.get(), "TRUE" if promoted_var.get() else "FALSE", "TRUE" if inactive_var.get() else "FALSE"), 7, 1)
 
     # Create text labels
     make_label(canvas, "Employee ID", 0, 0)
@@ -95,6 +93,11 @@ def make_label(window, text, row, column, color="white"):
     label_element = Label(window, text=text, bg=color)
     label_element.grid(row=row, column=column)
     return label_element
+
+def make_button(window, text, command, row, column):
+    button_element = Button(window, text=text, command=command)
+    button_element.grid(row=row, column=column)
+
 
 def make_entry(window, text, row, column, color="white"):
     entry_element = Entry(window, bg=color)
@@ -128,37 +131,27 @@ def position_form(total, open):
     make_label(canvas, "Open Positions", 1, 0)
     total_positions = make_entry(canvas, total, 0, 1)
     open_positions = make_entry(canvas, open, 1, 1)
-
-    back = Button(canvas, text="Back", width=10, command=lambda : list_employees())
-    back.grid(row=3, column=0)
-    submit = Button(canvas, text="Submit", width=10, command=lambda : update_positions(total_positions.get(), open_positions.get()))
-    submit.grid(row=3, column=1)
+    make_button(canvas, "Back", lambda : list_employees(), 3, 0)
+    make_button(canvas, "Submit", lambda : update_positions(total_positions.get(), open_positions.get()), 3, 1)
 
 def update_positions(total, open):
     try:
         pos_sql = """UPDATE positions SET (total, open) = (%s::int, %s::int) WHERE pos_id = True"""
         cur.execute(pos_sql, (total, open))
-        
     except Exception as ex:
         print(ex)
-
     conn.commit()
     list_employees()
-
 
 def list_employees():
     reset_window()
     cur.execute("SELECT * FROM employees;")
     emp_list = cur.fetchall()
-    new_emp = Button(canvas, text="New Employee", command=lambda : employee_form())
-    new_emp.pack()
-    
     grid_canvas = Canvas(canvas)
     grid_canvas.pack()
-
     pos_canvas = Canvas(canvas)
     pos_canvas.pack()
-
+    # Employee List
     make_label(grid_canvas, "Employee ID", 0, 0)
     make_label(grid_canvas, "Last Name", 0, 1)
     make_label(grid_canvas, "First Name", 0, 2)
@@ -167,9 +160,8 @@ def list_employees():
     make_label(grid_canvas, "Promoted", 0, 5)
     make_label(grid_canvas, "Inactive", 0, 6)
     make_label(grid_canvas, "Edit Info", 0, 7)
-
-    # (id, first_name, last_name, start_date, team, promoted, inactive)
     for i, emp in enumerate(emp_list):
+        # (id, first_name, last_name, start_date, team, promoted, inactive)
         make_label(grid_canvas, emp[0], i+1, 0) # Employee ID
         make_label(grid_canvas, emp[2], i+1, 1) # Last name
         make_label(grid_canvas, emp[1], i+1, 2) # First name
@@ -177,17 +169,13 @@ def list_employees():
         make_label(grid_canvas, emp[3], i+1, 4, date_colors(emp[3])) # Start date
         make_label(grid_canvas, emp[5], i+1, 5) # promoted
         make_label(grid_canvas, emp[6], i+1, 6) # inactive
-
-        edit = Button(grid_canvas, text="Edit", width=10, command=lambda current_emp=emp : employee_form(current_emp))
-        edit.grid(row=i+1, column=7)
-
-    # print(emp_list)
+        make_button(grid_canvas, "Edit", lambda current_emp=emp : employee_form(current_emp), i+1, 7)
+    # Positions Info
     cur.execute("SELECT * FROM positions")
     data = cur.fetchone()
     upcoming, pending = get_position_counts()
-
-    edit_pos = Button(pos_canvas, text="Edit Positions", command=lambda : position_form(data[1], data[2]))
-    edit_pos.grid(row=0, column=0)
+    make_button(pos_canvas, "New Employee", lambda : employee_form(), 0, 0)
+    make_button(pos_canvas, "Edit Positions", lambda : position_form(data[1], data[2]), 1, 0)
     make_label(pos_canvas, "Total Positions: ", 0, 1)
     make_label(pos_canvas, data[1], 0, 2)
     make_label(pos_canvas, "Open Positions: ", 1, 1)
@@ -201,6 +189,7 @@ def list_employees():
 
 root = Tk()
 root.title('CAPS Employee Program')
+root.resizable(True, True)
 canvas = Canvas(root)
 canvas.pack()
 
