@@ -198,7 +198,7 @@ canvas.pack()
 
 # connect to postgres
 try:
-    conn = psycopg2.connect(database = "caps_employees", user = "employees", password = "caps")
+    conn = psycopg2.connect(database = "d36rgsamtnofbn", user = "jwwhxzjhgnjkcy", password = "54214aacd5940c8df5e58763635b2945441b946ce69116e903cdcc4f8200f922", host = "ec2-3-217-251-77.compute-1.amazonaws.com")
 except:
     print('Unable to connect to the database')
 

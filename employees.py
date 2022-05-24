@@ -1,3 +1,5 @@
+#!/usr/local/bin/python
+
 import psycopg2
 from tkinter import *
 from tkcalendar import DateEntry
@@ -22,13 +24,13 @@ def create_db():
             inactive BOOLEAN
         );
         CREATE TABLE positions (
-            pos_id bool PRIMARY KEY DEFAULT TRUE
+            pos_id bool PRIMARY KEY DEFAULT TRUE,
             total INT NOT NULL,
             open INT NOT NULL,
             CONSTRAINT one_row_pos CHECK (pos_id)
         );
         REVOKE DELETE, TRUNCATE ON positions FROM public;
-        INSERT INTO employees (id, first_name, last_name, start_date, team, promoted, inactive) VALUES (101,'Sam','Fisher','2022-03-13', 1, FALSE, FALSE), (113,'Steve','Jobs','2022-04-22', 2, FALSE, FALSE);
+        INSERT INTO employees (id, first_name, last_name, start_date, team, promoted, inactive) VALUES (1084321,'Rabia','Suleiman','2022-03-13', 1, FALSE, FALSE), (762256,'Isaac','Newton','2021-06-13', 1, FALSE, FALSE), (9396393,'Nikola','Tesla','2021-05-27', 33, FALSE, FALSE), (3620196,'Elon','Musk','2020-03-22', 33, FALSE, TRUE), (322113,'Steve','Jobs','2020-11-22', 2, TRUE, FALSE), (4534234,'Hakeem','Olajuwon','2021-07-09', 34, FALSE, FALSE), (8821332,'Sigmund','Freud','2021-10-22', 3, FALSE, FALSE), (2512093,'Martha','Steward','2021-10-22', 5, FALSE, FALSE), (554216,'Taylor','Swift','2022-02-22', 22, FALSE, FALSE), (9982109,'Michael','Jordan','2021-01-03', 23, FALSE, FALSE), (1024954,'Lebron','James','2021-08-04', 23, FALSE, FALSE); 
         INSERT INTO positions (total, open) VALUES (0, 0)
         """)
     except Exception as ex:
@@ -176,14 +178,14 @@ def list_employees():
     upcoming, pending = get_position_counts()
     make_button(pos_canvas, "New Employee", lambda : employee_form(), 0, 0)
     make_button(pos_canvas, "Edit Positions", lambda : position_form(data[1], data[2]), 1, 0)
-    make_label(pos_canvas, "Total Positions: ", 0, 1)
-    make_label(pos_canvas, data[1], 0, 2)
-    make_label(pos_canvas, "Open Positions: ", 1, 1)
-    make_label(pos_canvas, data[2], 1, 2)
-    make_label(pos_canvas, "Pending Promotions: ", 0, 3)
-    make_label(pos_canvas, pending, 0, 4)
-    make_label(pos_canvas, "Upcoming Openings: ", 1, 3)
-    make_label(pos_canvas, upcoming, 1, 4)
+    make_label(pos_canvas, "Total Positions: ", 1, 1)
+    make_label(pos_canvas, data[1], 1, 2)
+    make_label(pos_canvas, "Open Positions: ", 1, 3)
+    make_label(pos_canvas, data[2], 1, 4)
+    make_label(pos_canvas, "Pending Promotions: ", 0, 1)
+    make_label(pos_canvas, pending, 0, 2, "red")
+    make_label(pos_canvas, "Upcoming Openings: ", 0, 3)
+    make_label(pos_canvas, upcoming, 0, 4, "yellow")
     root.mainloop()
 
 
@@ -196,7 +198,7 @@ canvas.pack()
 
 # connect to postgres
 try:
-    conn = psycopg2.connect(database = "caps_employees", user = "employees", password = "caps")
+    conn = psycopg2.connect(database = "d36rgsamtnofbn", user = "jwwhxzjhgnjkcy", password = "54214aacd5940c8df5e58763635b2945441b946ce69116e903cdcc4f8200f922", host = "ec2-3-217-251-77.compute-1.amazonaws.com")
 except:
     print('Unable to connect to the database')
 
@@ -205,7 +207,7 @@ cur = conn.cursor()
 
 
 
-# create_db()
+create_db()
 list_employees()
 # employee_form()
 
