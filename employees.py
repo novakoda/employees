@@ -1,6 +1,6 @@
 
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QGridLayout, QHeaderView, QMainWindow, QLabel, QPushButton, QGroupBox, QFormLayout, QLineEdit, QDateEdit, QCheckBox, QTabWidget
+    QApplication, QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QGridLayout, QHeaderView, QMainWindow, QLabel, QPushButton, QGroupBox, QFormLayout, QLineEdit, QDateEdit, QCheckBox, QTabWidget, QAbstractItemView
 )
 
 from PyQt6.QtGui import QColor
@@ -66,10 +66,11 @@ class UserInterface(QMainWindow):
         self.positions.hide()
         self.pos_form.display()
 
-class EmployeeTable(QWidget):
-    def __init__(self):
+class TableDad(QWidget):
+    def __init__(self, sql):
         super().__init__()
-        cur.execute("SELECT * FROM employees WHERE promoted <> TRUE AND inactive <> TRUE;")
+        self.sql = sql
+        cur.execute(self.sql)
         self.data = cur.fetchall()
         self.table()
 
@@ -81,13 +82,16 @@ class EmployeeTable(QWidget):
         self.show()
 
     def update(self):
-        cur.execute("SELECT * FROM employees WHERE promoted <> TRUE AND inactive <> TRUE;")
+        cur.execute(self.sql)
         self.data = cur.fetchall()
         for i in reversed(range(self.layout.count())): 
             self.layout.itemAt(i).widget().deleteLater()
         self.createTable()
         self.layout.addWidget(self.tableWidget)
 
+class EmployeeTable(TableDad):
+    def __init__(self):
+        super().__init__("SELECT * FROM employees WHERE promoted <> TRUE AND inactive <> TRUE;")
 
     def createTable(self):
         self.tableWidget = QTableWidget(len(self.data), 6)
@@ -103,6 +107,8 @@ class EmployeeTable(QWidget):
             self.tableWidget.setCellWidget(i,5, edit_button)
 
             self.tableWidget.item(i, 3).setBackground(QColor(self.date_colors(emp[3])))
+        self.tableWidget.resizeColumnsToContents()
+        self.tableWidget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
     def date_colors(self, emp_date):
         days = (date.today() - emp_date).days
@@ -111,29 +117,9 @@ class EmployeeTable(QWidget):
                 return "Red"
             return "Yellow"
         return "White"
-
-        self.tableWidget.resizeColumnsToContents()
-class PromotedTable(QWidget):
+class PromotedTable(TableDad):
     def __init__(self):
-        super().__init__()
-        cur.execute("SELECT * FROM employees WHERE promoted <> FALSE AND inactive <> TRUE;")
-        self.data = cur.fetchall()
-        self.table()
-
-    def table(self):
-        self.createTable()
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.tableWidget)
-        self.setLayout(self.layout)
-        self.show()
-
-    def update(self):
-        cur.execute("SELECT * FROM employees WHERE promoted <> FALSE AND inactive <> TRUE;")
-        self.data = cur.fetchall()
-        for i in reversed(range(self.layout.count())): 
-            self.layout.itemAt(i).widget().deleteLater()
-        self.createTable()
-        self.layout.addWidget(self.tableWidget)
+        super().__init__("SELECT * FROM employees WHERE promoted <> FALSE AND inactive <> TRUE;")
 
     def createTable(self):
         self.tableWidget = QTableWidget(len(self.data), 7)
@@ -148,31 +134,13 @@ class PromotedTable(QWidget):
             self.tableWidget.setItem(i,5, QTableWidgetItem(str(emp[6])))
             edit_button.clicked.connect(lambda clicked, j=i: win.show_employee_form(self.data[j]))
             self.tableWidget.setCellWidget(i,6, edit_button)
-
         self.tableWidget.resizeColumnsToContents()
+        self.tableWidget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
-class InactiveTable(QWidget):
+class InactiveTable(TableDad):
     def __init__(self):
-        super().__init__()
-        cur.execute("SELECT * FROM employees WHERE inactive <> FALSE;")
-        self.data = cur.fetchall()
-        self.table()
-
-    def table(self):
-        self.createTable()
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.tableWidget)
-        self.setLayout(self.layout)
-        self.show()
-
-    def update(self):
-        cur.execute("SELECT * FROM employees WHERE inactive <> FALSE;")
-        self.data = cur.fetchall()
-        for i in reversed(range(self.layout.count())): 
-            self.layout.itemAt(i).widget().deleteLater()
-        self.createTable()
-        self.layout.addWidget(self.tableWidget)
-
+        super().__init__("SELECT * FROM employees WHERE inactive <> FALSE;")
+        
     def createTable(self):
         self.tableWidget = QTableWidget(len(self.data), 7)
         self.tableWidget.setHorizontalHeaderLabels(["ID", "First Name", "Last Name", "Start Date", "Team #", "Inactive Date", ""])
@@ -186,8 +154,8 @@ class InactiveTable(QWidget):
             self.tableWidget.setItem(i,5, QTableWidgetItem(str(emp[8])))
             edit_button.clicked.connect(lambda clicked, j=i: win.show_employee_form(self.data[j]))
             self.tableWidget.setCellWidget(i,6, edit_button)
-
         self.tableWidget.resizeColumnsToContents()
+        self.tableWidget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
 class PositionInfo(QWidget):
     def __init__(self):
