@@ -1,12 +1,12 @@
 
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QGridLayout, QHeaderView, QMainWindow, QLabel, QPushButton, QGroupBox, QFormLayout, QLineEdit, QDateEdit, QCheckBox, QTabWidget, QAbstractItemView
+    QApplication, QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QGridLayout, QHeaderView, QMainWindow, QLabel, QPushButton, QDialogButtonBox, QFormLayout, QLineEdit, QDateEdit, QCheckBox, QTabWidget, QAbstractItemView, QMessageBox
 )
 
 from PyQt6.QtGui import QColor
 
 from PyQt6.QtCore import (
-    QDate, Qt
+    QDate, QSize
 )
 
 import psycopg2
@@ -18,11 +18,11 @@ class UserInterface(QMainWindow):
         super().__init__()
         self.tabs = QTabWidget()
         self.table = EmployeeTable()
-        self.tabs.addTab(self.table, "Active Employees")
+        self.tabs.addTab(self.table, "Active")
         self.promoted_table = PromotedTable()
-        self.tabs.addTab(self.promoted_table, "Promoted Employees")
+        self.tabs.addTab(self.promoted_table, "Promoted")
         self.inactive_table = InactiveTable()
-        self.tabs.addTab(self.inactive_table, "Inactive Employees")
+        self.tabs.addTab(self.inactive_table, "Inactive")
 
         self.positions = PositionInfo()
         self.pos_form = PositionForm()
@@ -95,19 +95,24 @@ class EmployeeTable(TableDad):
 
     def createTable(self):
         self.tableWidget = QTableWidget(len(self.data), 6)
+        header = self.tableWidget.horizontalHeader()
         self.tableWidget.setHorizontalHeaderLabels(["ID", "First Name", "Last Name", "Start Date", "Team #", ""])
         for i, emp in enumerate(self.data):
             edit_button = QPushButton("Edit", self)
-            self.tableWidget.setItem(i,0, QTableWidgetItem(str(emp[0])))
-            self.tableWidget.setItem(i,1, QTableWidgetItem(str(emp[1])))
-            self.tableWidget.setItem(i,2, QTableWidgetItem(str(emp[2])))
-            self.tableWidget.setItem(i,3, QTableWidgetItem(str(emp[3])))
-            self.tableWidget.setItem(i,4, QTableWidgetItem(str(emp[4])))
+            self.tableWidget.setItem(i,0, QTableWidgetItem(str(emp[0]))) # ID
+            self.tableWidget.setItem(i,1, QTableWidgetItem(str(emp[1]))) # First Name
+            self.tableWidget.setItem(i,2, QTableWidgetItem(str(emp[2]))) # Last Name
+            self.tableWidget.setItem(i,3, QTableWidgetItem(str(emp[3]))) # Start Date
+            self.tableWidget.setItem(i,4, QTableWidgetItem(str(emp[4]))) # Teeam Number
             edit_button.clicked.connect(lambda clicked, j=i: win.show_employee_form(self.data[j]))
+            edit_button.setFixedSize(QSize(40,30))
             self.tableWidget.setCellWidget(i,5, edit_button)
 
             self.tableWidget.item(i, 3).setBackground(QColor(self.date_colors(emp[3])))
-        self.tableWidget.resizeColumnsToContents()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        header.resizeSection(5, 40)
         self.tableWidget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
     def date_colors(self, emp_date):
@@ -117,12 +122,14 @@ class EmployeeTable(TableDad):
                 return "Red"
             return "Yellow"
         return "White"
+
 class PromotedTable(TableDad):
     def __init__(self):
         super().__init__("SELECT * FROM employees WHERE promoted <> FALSE AND inactive <> TRUE;")
 
     def createTable(self):
         self.tableWidget = QTableWidget(len(self.data), 7)
+        header = self.tableWidget.horizontalHeader()
         self.tableWidget.setHorizontalHeaderLabels(["ID", "First Name", "Last Name", "Start Date", "Team #", "Promotion Date", ""])
         for i, emp in enumerate(self.data):
             edit_button = QPushButton("Edit", self)
@@ -133,8 +140,12 @@ class PromotedTable(TableDad):
             self.tableWidget.setItem(i,4, QTableWidgetItem(str(emp[4])))
             self.tableWidget.setItem(i,5, QTableWidgetItem(str(emp[6])))
             edit_button.clicked.connect(lambda clicked, j=i: win.show_employee_form(self.data[j]))
+            edit_button.setFixedSize(QSize(40,30))
             self.tableWidget.setCellWidget(i,6, edit_button)
-        self.tableWidget.resizeColumnsToContents()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        header.resizeSection(6, 40)
         self.tableWidget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
 class InactiveTable(TableDad):
@@ -143,6 +154,7 @@ class InactiveTable(TableDad):
         
     def createTable(self):
         self.tableWidget = QTableWidget(len(self.data), 7)
+        header = self.tableWidget.horizontalHeader()
         self.tableWidget.setHorizontalHeaderLabels(["ID", "First Name", "Last Name", "Start Date", "Team #", "Inactive Date", ""])
         for i, emp in enumerate(self.data):
             edit_button = QPushButton("Edit", self)
@@ -153,8 +165,12 @@ class InactiveTable(TableDad):
             self.tableWidget.setItem(i,4, QTableWidgetItem(str(emp[4])))
             self.tableWidget.setItem(i,5, QTableWidgetItem(str(emp[8])))
             edit_button.clicked.connect(lambda clicked, j=i: win.show_employee_form(self.data[j]))
+            edit_button.setFixedSize(QSize(40,30))
             self.tableWidget.setCellWidget(i,6, edit_button)
-        self.tableWidget.resizeColumnsToContents()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        header.resizeSection(6, 40)
         self.tableWidget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
 class PositionInfo(QWidget):
@@ -165,17 +181,8 @@ class PositionInfo(QWidget):
         self.grid()
 
     def grid(self):
-        self.get_position_counts()
-        self.label_data()
         self.layout = QGridLayout()
-        self.data_btn = QPushButton("Edit Positions", self)
-        self.empl_btn = QPushButton("New Employee", self)
-        self.layout.addWidget(self.data_btn, 0, 0)
-        self.layout.addWidget(self.empl_btn, 1, 0)
-        self.layout.addWidget(self.total, 0, 1)
-        self.layout.addWidget(self.open, 0, 2)
-        self.layout.addWidget(self.upcoming, 1, 1)
-        self.layout.addWidget(self.promotions, 1, 2)
+        self.populate_grid()
         self.setLayout(self.layout)
         self.show()
 
@@ -183,9 +190,11 @@ class PositionInfo(QWidget):
         self.total = QLabel("Total Positions : %s" % self.data[1])
         self.open = QLabel("Open Positions : %s" % self.data[2])
         self.upcoming = QLabel("Upcoming Openings : %s" % self.yellow_count)
-        self.upcoming.setStyleSheet("background-color: yellow;")
+        self.upcoming.setStyleSheet("""background-color: yellow;
+                                        padding: 2px;""")
         self.promotions = QLabel("Pending Promotions : %s" % self.red_count)
-        self.promotions.setStyleSheet("background-color: red;")
+        self.promotions.setStyleSheet("""background-color: red;
+                                        padding: 2px;""")
 
     def get_position_counts(self):
         nine_ago = date.today() - timedelta(days=274)
@@ -200,21 +209,32 @@ class PositionInfo(QWidget):
         red_count = cur.fetchone()
         self.red_count = red_count[0]
 
-    def update(self):
-        cur.execute("SELECT * FROM positions")
-        self.data = cur.fetchone()
-        for i in reversed(range(self.layout.count())): 
-            self.layout.itemAt(i).widget().deleteLater()
+    def populate_grid(self):
         self.get_position_counts()
         self.label_data()
         self.data_btn = QPushButton("Edit Positions", self)
         self.empl_btn = QPushButton("New Employee", self)
+
+        self.data_btn.setFixedSize(QSize(100,30))
+        self.empl_btn.setFixedSize(QSize(100,30))
+        self.total.setFixedSize(QSize(200,30))
+        self.open.setFixedSize(QSize(200,30))
+        self.upcoming.setFixedSize(QSize(135,30))
+        self.promotions.setFixedSize(QSize(135,30))
+
         self.layout.addWidget(self.data_btn, 0, 0)
         self.layout.addWidget(self.empl_btn, 1, 0)
         self.layout.addWidget(self.total, 0, 1)
         self.layout.addWidget(self.open, 0, 2)
         self.layout.addWidget(self.upcoming, 1, 1)
         self.layout.addWidget(self.promotions, 1, 2)
+
+    def update(self):
+        cur.execute("SELECT * FROM positions")
+        self.data = cur.fetchone()
+        for i in reversed(range(self.layout.count())): 
+            self.layout.itemAt(i).widget().deleteLater()
+        self.populate_grid()
 
 
 class PositionForm(QWidget):
@@ -268,8 +288,10 @@ class EmployeeForm(QWidget):
     def display(self, emp=None):
         if not emp:
             self.emp = ('','','', date.today(), '', False, date.today(), False, date.today())
+            self.delete_btn.hide()
         else:
             self.emp = emp
+            self.delete_btn.show()
         self.update() 
         self.show()
 
@@ -301,10 +323,44 @@ class EmployeeForm(QWidget):
         self.back_btn = QPushButton("Back", self)
         self.submit_btn = QPushButton("Submit", self)
         self.submit_btn.clicked.connect(self.submit_form)
+        self.delete_btn = QPushButton("Delete", self)
+        self.delete_btn.clicked.connect(self.delete_emp)
+
+        
+        self.back_btn.setFixedSize(QSize(70,30))
+        self.submit_btn.setFixedSize(QSize(70,30))
+        self.delete_btn.setFixedSize(QSize(70,30))
 
         self.layout.addRow(self.back_btn, self.submit_btn)
+        self.layout.addRow(self.delete_btn)
         self.setLayout(self.layout)
         self.hide()
+
+    def delete_emp(self):
+        self.setDisabled(True)
+        close = QMessageBox()
+        close.setText("Are you sure?\n(There is no undo)")
+        close.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        close = close.exec()
+
+        if close == QMessageBox.StandardButton.Yes:
+            try:
+                delete_sql = '''
+                    DELETE FROM employees WHERE id = %s::int AND first_name = %s AND last_name = %s
+                '''
+                cur.execute(delete_sql, (self.emp[0], self.emp[1], self.emp[2]))
+            except Exception as ex:
+                print(ex)
+
+            conn.commit()
+            self.setDisabled(False)
+            win.table.update()
+            win.promoted_table.update()
+            win.inactive_table.update()
+            win.show_employee_table()
+        else:
+            self.setDisabled(False)
+
 
     def submit_form(self):
         eid = self.emp_id.text()
