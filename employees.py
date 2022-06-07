@@ -43,6 +43,7 @@ class UserInterface(QMainWindow):
         self.positions.data_btn.clicked.connect(self.show_position_form)
         self.emp_form.back_btn.clicked.connect(self.show_employee_table)
         self.pos_form.back_btn.clicked.connect(self.show_employee_table)
+        self.setStyleSheet("QTableWidget { selection-color: palette(text); selection-background-color: palette(base); }")
         # self.resize(self.sizeHint())
 
     def show_employee_table(self):
@@ -92,23 +93,21 @@ class TableDad(QWidget):
         self.createTable()
         self.layout.addWidget(self.tableWidget)
 
-    def onHeaderClicked(self, logicalIndex):
-        print(logicalIndex)
-        if logicalIndex <= 4:
-            # if sorted(self.data, key=lambda emp: emp[logicalIndex]) == self.data:
-            print(all(self.data[i][logicalIndex] <= self.data[i + 1][logicalIndex] for i in range(len(self.data)-1)))
-            if (all(self.data[i][logicalIndex] <= self.data[i + 1][logicalIndex] for i in range(len(self.data)-1))):
-                self.data.sort(key=lambda emp: emp[logicalIndex], reverse=True)
+    def onHeaderClicked(self, dataIndex):
+        if dataIndex <= 4:
+            if (all(self.data[i][dataIndex] <= self.data[i + 1][dataIndex] for i in range(len(self.data)-1))):
+                self.data.sort(key=lambda emp: emp[dataIndex], reverse=True)
             else:
-                self.data.sort(key=lambda emp: emp[logicalIndex])
+                self.data.sort(key=lambda emp: emp[dataIndex])
             self.refresh()
-
-        elif logicalIndex == 5:
-            if self.data and self.data[0][5] == True and self.data[0][7] == False:
+        elif dataIndex == 5:
+            # Promoted
+            if self.data and self.data[0][5] == True and self.data[0][7] == False: 
                 if (all(self.data[i][6] <= self.data[i + 1][6] for i in range(len(self.data)-1))):
                     self.data.sort(key=lambda emp: emp[6], reverse=True)
                 else:
                     self.data.sort(key=lambda emp: emp[6])
+            # Inactive
             elif self.data and self.data[0][7] == True:
                 if (all(self.data[i][8] <= self.data[i + 1][8] for i in range(len(self.data)-1))):
                     self.data.sort(key=lambda emp: emp[8], reverse=True)
