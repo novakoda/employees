@@ -72,6 +72,7 @@ class TableDad(QWidget):
         self.sql = sql
         cur.execute(self.sql)
         self.data = cur.fetchall()
+        self.data.sort(key=lambda emp: emp[3])
         self.table()
 
     def table(self):
@@ -84,10 +85,37 @@ class TableDad(QWidget):
     def update(self):
         cur.execute(self.sql)
         self.data = cur.fetchall()
+        self.refresh()
+
+    def refresh(self):
         for i in reversed(range(self.layout.count())): 
             self.layout.itemAt(i).widget().deleteLater()
         self.createTable()
         self.layout.addWidget(self.tableWidget)
+
+    def onHeaderClicked(self, logicalIndex):
+        print(logicalIndex)
+        if logicalIndex <= 4:
+            # if sorted(self.data, key=lambda emp: emp[logicalIndex]) == self.data:
+            print(all(self.data[i][logicalIndex] <= self.data[i + 1][logicalIndex] for i in range(len(self.data)-1)))
+            if (all(self.data[i][logicalIndex] <= self.data[i + 1][logicalIndex] for i in range(len(self.data)-1))):
+                self.data.sort(key=lambda emp: emp[logicalIndex], reverse=True)
+            else:
+                self.data.sort(key=lambda emp: emp[logicalIndex])
+            self.refresh()
+
+        elif logicalIndex == 5:
+            if self.data and self.data[0][5] == True and self.data[0][7] == False:
+                if (all(self.data[i][6] <= self.data[i + 1][6] for i in range(len(self.data)-1))):
+                    self.data.sort(key=lambda emp: emp[6], reverse=True)
+                else:
+                    self.data.sort(key=lambda emp: emp[6])
+            elif self.data and self.data[0][7] == True:
+                if (all(self.data[i][8] <= self.data[i + 1][8] for i in range(len(self.data)-1))):
+                    self.data.sort(key=lambda emp: emp[8], reverse=True)
+                else:
+                    self.data.sort(key=lambda emp: emp[8])
+            self.refresh()
 
 class EmployeeTable(TableDad):
     def __init__(self):
@@ -103,7 +131,7 @@ class EmployeeTable(TableDad):
             self.tableWidget.setItem(i,1, QTableWidgetItem(str(emp[1]))) # First Name
             self.tableWidget.setItem(i,2, QTableWidgetItem(str(emp[2]))) # Last Name
             self.tableWidget.setItem(i,3, QTableWidgetItem(str(emp[3]))) # Start Date
-            self.tableWidget.setItem(i,4, QTableWidgetItem(str(emp[4]))) # Teeam Number
+            self.tableWidget.setItem(i,4, QTableWidgetItem(str(emp[4]))) # Team Number
             edit_button.clicked.connect(lambda clicked, j=i: win.show_employee_form(self.data[j]))
             edit_button.setFixedSize(QSize(40,30))
             self.tableWidget.setCellWidget(i,5, edit_button)
@@ -114,6 +142,7 @@ class EmployeeTable(TableDad):
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         header.resizeSection(5, 40)
         self.tableWidget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        header.sectionClicked.connect(self.onHeaderClicked)
 
     def date_colors(self, emp_date):
         days = (date.today() - emp_date).days
@@ -133,12 +162,12 @@ class PromotedTable(TableDad):
         self.tableWidget.setHorizontalHeaderLabels(["ID", "First Name", "Last Name", "Start Date", "Team #", "Promotion Date", ""])
         for i, emp in enumerate(self.data):
             edit_button = QPushButton("Edit", self)
-            self.tableWidget.setItem(i,0, QTableWidgetItem(str(emp[0])))
-            self.tableWidget.setItem(i,2, QTableWidgetItem(str(emp[2])))
-            self.tableWidget.setItem(i,1, QTableWidgetItem(str(emp[1])))
-            self.tableWidget.setItem(i,3, QTableWidgetItem(str(emp[3])))
-            self.tableWidget.setItem(i,4, QTableWidgetItem(str(emp[4])))
-            self.tableWidget.setItem(i,5, QTableWidgetItem(str(emp[6])))
+            self.tableWidget.setItem(i,0, QTableWidgetItem(str(emp[0]))) # ID
+            self.tableWidget.setItem(i,2, QTableWidgetItem(str(emp[2]))) # First Name
+            self.tableWidget.setItem(i,1, QTableWidgetItem(str(emp[1]))) # Last Name
+            self.tableWidget.setItem(i,3, QTableWidgetItem(str(emp[3]))) # Start Date
+            self.tableWidget.setItem(i,4, QTableWidgetItem(str(emp[4]))) # Team Number
+            self.tableWidget.setItem(i,5, QTableWidgetItem(str(emp[6]))) # Promoted Date
             edit_button.clicked.connect(lambda clicked, j=i: win.show_employee_form(self.data[j]))
             edit_button.setFixedSize(QSize(40,30))
             self.tableWidget.setCellWidget(i,6, edit_button)
@@ -147,6 +176,7 @@ class PromotedTable(TableDad):
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         header.resizeSection(6, 40)
         self.tableWidget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        header.sectionClicked.connect(self.onHeaderClicked)
 
 class InactiveTable(TableDad):
     def __init__(self):
@@ -158,12 +188,12 @@ class InactiveTable(TableDad):
         self.tableWidget.setHorizontalHeaderLabels(["ID", "First Name", "Last Name", "Start Date", "Team #", "Inactive Date", ""])
         for i, emp in enumerate(self.data):
             edit_button = QPushButton("Edit", self)
-            self.tableWidget.setItem(i,0, QTableWidgetItem(str(emp[0])))
-            self.tableWidget.setItem(i,2, QTableWidgetItem(str(emp[2])))
-            self.tableWidget.setItem(i,1, QTableWidgetItem(str(emp[1])))
-            self.tableWidget.setItem(i,3, QTableWidgetItem(str(emp[3])))
-            self.tableWidget.setItem(i,4, QTableWidgetItem(str(emp[4])))
-            self.tableWidget.setItem(i,5, QTableWidgetItem(str(emp[8])))
+            self.tableWidget.setItem(i,0, QTableWidgetItem(str(emp[0]))) # ID
+            self.tableWidget.setItem(i,2, QTableWidgetItem(str(emp[2]))) # First Name
+            self.tableWidget.setItem(i,1, QTableWidgetItem(str(emp[1]))) # Last Name
+            self.tableWidget.setItem(i,3, QTableWidgetItem(str(emp[3]))) # Start Date
+            self.tableWidget.setItem(i,4, QTableWidgetItem(str(emp[4]))) # Team Number
+            self.tableWidget.setItem(i,5, QTableWidgetItem(str(emp[8]))) # Inactive Date
             edit_button.clicked.connect(lambda clicked, j=i: win.show_employee_form(self.data[j]))
             edit_button.setFixedSize(QSize(40,30))
             self.tableWidget.setCellWidget(i,6, edit_button)
@@ -172,6 +202,7 @@ class InactiveTable(TableDad):
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         header.resizeSection(6, 40)
         self.tableWidget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        header.sectionClicked.connect(self.onHeaderClicked)
 
 class PositionInfo(QWidget):
     def __init__(self):
