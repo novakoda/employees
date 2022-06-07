@@ -1,6 +1,5 @@
-
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QGridLayout, QHeaderView, QMainWindow, QLabel, QPushButton, QDialogButtonBox, QFormLayout, QLineEdit, QDateEdit, QCheckBox, QTabWidget, QAbstractItemView, QMessageBox
+    QApplication, QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QGridLayout, QHeaderView, QMainWindow, QLabel, QPushButton, QFormLayout, QLineEdit, QDateEdit, QCheckBox, QTabWidget, QAbstractItemView, QMessageBox
 )
 
 from PyQt6.QtGui import QColor
@@ -285,6 +284,10 @@ class PositionForm(QWidget):
         self.back_btn = QPushButton("Back", self)
         self.submit_btn = QPushButton("Submit", self)
         self.submit_btn.clicked.connect(self.submit)
+
+        self.back_btn.setFixedSize(QSize(70,30))
+        self.submit_btn.setFixedSize(QSize(70,30))
+
         self.layout.addRow(self.back_btn, self.submit_btn)
         self.setLayout(self.layout)
         self.hide()
