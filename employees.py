@@ -1,12 +1,12 @@
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QGridLayout, QHeaderView, QMainWindow, QLabel, QPushButton, QFormLayout, QLineEdit, QDateEdit, QCheckBox, QTabWidget, QAbstractItemView, QMessageBox
+    QApplication, QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QGridLayout, QHeaderView, QMainWindow, QLabel, QPushButton, QFormLayout, QLineEdit, QDateEdit, QCheckBox, QTabWidget, QAbstractItemView, QMessageBox, QFileDialog
 )
 
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QTextDocument
 
-from PyQt6.QtCore import (
-    QDate, QSize
-)
+from PyQt6.QtCore import QDate, QSize, Qt, QFile, QFileInfo
+
+from PyQt6.QtPrintSupport import QPrinter
 
 import psycopg2
 from datetime import date, timedelta
@@ -41,6 +41,7 @@ class UserInterface(QMainWindow):
 
         self.positions.empl_btn.clicked.connect(self.show_employee_form)
         self.positions.data_btn.clicked.connect(self.show_position_form)
+        self.positions.print_btn.clicked.connect(self.print_info)
         self.emp_form.back_btn.clicked.connect(self.show_employee_table)
         self.pos_form.back_btn.clicked.connect(self.show_employee_table)
         self.setStyleSheet("QTableWidget { selection-color: palette(text); selection-background-color: palette(base); }")
@@ -65,6 +66,65 @@ class UserInterface(QMainWindow):
         self.tabs.hide()
         self.positions.hide()
         self.pos_form.display()
+
+    def print_info(self):
+        dialog, _ = QFileDialog.getSaveFileName(self, "Save as PDF", None, "PDF files (.pdf);;All Files")
+        print(dialog)
+        if dialog != '':
+            if QFileInfo(dialog).suffix() == '' : dialog += '.pdf'
+
+            tab = self.tabs.currentIndex()
+            if tab == 0:
+                table = self.table.tableWidget
+            elif tab == 1:
+                table = self.promoted_table.tableWidget
+            elif tab == 2:
+                table = self.inactive_table.tableWidget
+
+            self.printer = QPrinter(QPrinter.PrinterMode.ScreenResolution)
+            self.printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+            self.printer.setOutputFileName(dialog)
+
+            doc = QTextDocument()
+
+            html = """
+            <html>
+                <head>
+                    <style>
+                        table, th, td {
+                            border: 1px solid black;
+                            padding: 5px;
+                            border-collapse: collapse;
+                        }
+                    </style>
+                </head>
+                <table>
+                    <thead>
+                        <tr>
+            """
+            for c in range(table.columnCount() - 1):
+                html += "<td>{}</td>".format(table.horizontalHeaderItem(c).text())
+
+            html += """
+                        </tr>
+                    </thead>
+                    <tbody>
+                    """
+
+            for r in range(table.rowCount()):
+                html += "<tr>"
+                for c in range(table.columnCount() - 1):
+                    html += "<td>{}</td>".format(table.item(r, c).text() or '')
+                html += "</tr>"
+
+            html += """
+                    </tbody>
+                </table>
+            """
+
+            doc.setHtml(html)
+            doc.setPageSize(self.printer.pageRect(QPrinter.Unit.Point).size())
+            doc.print(self.printer)
 
 class TableDad(QWidget):
     def __init__(self, sql):
@@ -133,7 +193,6 @@ class EmployeeTable(TableDad):
             edit_button.clicked.connect(lambda clicked, j=i: win.show_employee_form(self.data[j]))
             edit_button.setFixedSize(QSize(40,30))
             self.tableWidget.setCellWidget(i,5, edit_button)
-
             self.tableWidget.item(i, 3).setBackground(QColor(self.date_colors(emp[3])))
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
@@ -243,9 +302,11 @@ class PositionInfo(QWidget):
         self.label_data()
         self.data_btn = QPushButton("Edit Positions", self)
         self.empl_btn = QPushButton("New Employee", self)
+        self.print_btn = QPushButton("Save as PDF", self)
 
         self.data_btn.setFixedSize(QSize(100,30))
         self.empl_btn.setFixedSize(QSize(100,30))
+        self.print_btn.setFixedSize(QSize(100,30))
         self.total.setFixedSize(QSize(200,30))
         self.open.setFixedSize(QSize(200,30))
         self.upcoming.setFixedSize(QSize(135,30))
@@ -257,6 +318,7 @@ class PositionInfo(QWidget):
         self.layout.addWidget(self.open, 0, 2)
         self.layout.addWidget(self.upcoming, 1, 1)
         self.layout.addWidget(self.promotions, 1, 2)
+        self.layout.addWidget(self.print_btn, 0, 3)
 
     def update(self):
         cur.execute("SELECT * FROM positions")
@@ -264,7 +326,6 @@ class PositionInfo(QWidget):
         for i in reversed(range(self.layout.count())): 
             self.layout.itemAt(i).widget().deleteLater()
         self.populate_grid()
-
 
 class PositionForm(QWidget):
     def __init__(self):
@@ -520,3 +581,4 @@ if __name__ == "__main__":
     win.show()
     
     sys.exit(app.exec())
+    
