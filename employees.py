@@ -2,9 +2,9 @@ from PyQt6.QtWidgets import (
     QApplication, QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QGridLayout, QHeaderView, QMainWindow, QLabel, QPushButton, QFormLayout, QLineEdit, QDateEdit, QCheckBox, QTabWidget, QAbstractItemView, QMessageBox, QFileDialog
 )
 
-from PyQt6.QtGui import QColor, QTextDocument
+from PyQt6.QtGui import QColor, QTextDocument, QIntValidator, QPageLayout, QIcon
 
-from PyQt6.QtCore import QDate, QSize, Qt, QFile, QFileInfo
+from PyQt6.QtCore import QDate, QSize, QMarginsF, QFileInfo
 
 from PyQt6.QtPrintSupport import QPrinter
 
@@ -15,6 +15,7 @@ import sys
 class UserInterface(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.setWindowIcon(QIcon('aclogo.ico'))
         self.tabs = QTabWidget()
         self.table = EmployeeTable()
         self.tabs.addTab(self.table, "Active")
@@ -45,15 +46,12 @@ class UserInterface(QMainWindow):
         self.emp_form.back_btn.clicked.connect(self.show_employee_table)
         self.pos_form.back_btn.clicked.connect(self.show_employee_table)
         self.setStyleSheet("QTableWidget { selection-color: palette(text); selection-background-color: palette(base); }")
-        # self.resize(self.sizeHint())
 
     def show_employee_table(self):
         self.emp_form.hide()
         self.pos_form.hide()
         self.tabs.show()
         self.positions.show()
-        self.positions.empl_btn.clicked.connect(self.show_employee_form)
-        self.positions.data_btn.clicked.connect(self.show_position_form)
 
     def show_employee_form(self, emp=None):
         self.tabs.hide()
@@ -68,22 +66,26 @@ class UserInterface(QMainWindow):
         self.pos_form.display()
 
     def print_info(self):
-        dialog, _ = QFileDialog.getSaveFileName(self, "Save as PDF", None, "PDF files (.pdf);;All Files")
-        print(dialog)
-        if dialog != '':
-            if QFileInfo(dialog).suffix() == '' : dialog += '.pdf'
+        dialog = QFileDialog()
+        fileName, _ = dialog.getSaveFileName(self, "Save as PDF", None, "PDF files (*.pdf);;All files(*)")
+        if fileName != '':
+            if QFileInfo(fileName).suffix() == '' : dialog += '.pdf'
 
             tab = self.tabs.currentIndex()
             if tab == 0:
                 table = self.table.tableWidget
+                word = "Current"
             elif tab == 1:
                 table = self.promoted_table.tableWidget
+                word = "Promoted"
             elif tab == 2:
                 table = self.inactive_table.tableWidget
+                word = "Inactive"
 
             self.printer = QPrinter(QPrinter.PrinterMode.ScreenResolution)
             self.printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
-            self.printer.setOutputFileName(dialog)
+            self.printer.setPageMargins(QMarginsF(15,15,15,15), QPageLayout.Unit.Millimeter)
+            self.printer.setOutputFileName(fileName)
 
             doc = QTextDocument()
 
@@ -91,17 +93,35 @@ class UserInterface(QMainWindow):
             <html>
                 <head>
                     <style>
-                        table, th, td {
+                        table, thead, td {
                             border: 1px solid black;
                             padding: 5px;
                             border-collapse: collapse;
                         }
+
+                        table {
+                            margin: 10px 0px 0px 0px;
+                        }
+
+                        p {
+                            margin: 5px 0px 5px 0px;
+                        }
                     </style>
                 </head>
-                <table>
-                    <thead>
-                        <tr>
+                <h3>
             """
+            html += word
+
+            html += " Employees List</h3>"
+            html += ("""<div>
+                            <p class="data">Total Positions : %s</p>
+                            <p class="data">Open Positions : %s</p>
+                            <p class="data">Upcoming Openings : %s</p>
+                            <p class="data">Pending Promotions : %s</p>
+                        </div>
+                        """ % (self.positions.data[1], self.positions.data[2], self.positions.yellow_count, self.positions.red_count))
+
+            html += "<table><thead><tr>"
             for c in range(table.columnCount() - 1):
                 html += "<td>{}</td>".format(table.horizontalHeaderItem(c).text())
 
@@ -182,14 +202,14 @@ class EmployeeTable(TableDad):
     def createTable(self):
         self.tableWidget = QTableWidget(len(self.data), 6)
         header = self.tableWidget.horizontalHeader()
-        self.tableWidget.setHorizontalHeaderLabels(["ID", "First Name", "Last Name", "Start Date", "Team #", ""])
+        self.tableWidget.setHorizontalHeaderLabels(["ID", "First Name", "Last Name", "Start Date", "Team", ""])
         for i, emp in enumerate(self.data):
             edit_button = QPushButton("Edit", self)
             self.tableWidget.setItem(i,0, QTableWidgetItem(str(emp[0]))) # ID
             self.tableWidget.setItem(i,1, QTableWidgetItem(str(emp[1]))) # First Name
             self.tableWidget.setItem(i,2, QTableWidgetItem(str(emp[2]))) # Last Name
             self.tableWidget.setItem(i,3, QTableWidgetItem(str(emp[3]))) # Start Date
-            self.tableWidget.setItem(i,4, QTableWidgetItem(str(emp[4]))) # Team Number
+            self.tableWidget.setItem(i,4, QTableWidgetItem(str(emp[4]))) # Team
             edit_button.clicked.connect(lambda clicked, j=i: win.show_employee_form(self.data[j]))
             edit_button.setFixedSize(QSize(40,30))
             self.tableWidget.setCellWidget(i,5, edit_button)
@@ -216,14 +236,14 @@ class PromotedTable(TableDad):
     def createTable(self):
         self.tableWidget = QTableWidget(len(self.data), 7)
         header = self.tableWidget.horizontalHeader()
-        self.tableWidget.setHorizontalHeaderLabels(["ID", "First Name", "Last Name", "Start Date", "Team #", "Promotion Date", ""])
+        self.tableWidget.setHorizontalHeaderLabels(["ID", "First Name", "Last Name", "Start Date", "Team", "Promotion Date", ""])
         for i, emp in enumerate(self.data):
             edit_button = QPushButton("Edit", self)
             self.tableWidget.setItem(i,0, QTableWidgetItem(str(emp[0]))) # ID
             self.tableWidget.setItem(i,2, QTableWidgetItem(str(emp[2]))) # First Name
             self.tableWidget.setItem(i,1, QTableWidgetItem(str(emp[1]))) # Last Name
             self.tableWidget.setItem(i,3, QTableWidgetItem(str(emp[3]))) # Start Date
-            self.tableWidget.setItem(i,4, QTableWidgetItem(str(emp[4]))) # Team Number
+            self.tableWidget.setItem(i,4, QTableWidgetItem(str(emp[4]))) # Team
             self.tableWidget.setItem(i,5, QTableWidgetItem(str(emp[6]))) # Promoted Date
             edit_button.clicked.connect(lambda clicked, j=i: win.show_employee_form(self.data[j]))
             edit_button.setFixedSize(QSize(40,30))
@@ -242,14 +262,14 @@ class InactiveTable(TableDad):
     def createTable(self):
         self.tableWidget = QTableWidget(len(self.data), 7)
         header = self.tableWidget.horizontalHeader()
-        self.tableWidget.setHorizontalHeaderLabels(["ID", "First Name", "Last Name", "Start Date", "Team #", "Inactive Date", ""])
+        self.tableWidget.setHorizontalHeaderLabels(["ID", "First Name", "Last Name", "Start Date", "Team", "Inactive Date", ""])
         for i, emp in enumerate(self.data):
             edit_button = QPushButton("Edit", self)
             self.tableWidget.setItem(i,0, QTableWidgetItem(str(emp[0]))) # ID
             self.tableWidget.setItem(i,2, QTableWidgetItem(str(emp[2]))) # First Name
             self.tableWidget.setItem(i,1, QTableWidgetItem(str(emp[1]))) # Last Name
             self.tableWidget.setItem(i,3, QTableWidgetItem(str(emp[3]))) # Start Date
-            self.tableWidget.setItem(i,4, QTableWidgetItem(str(emp[4]))) # Team Number
+            self.tableWidget.setItem(i,4, QTableWidgetItem(str(emp[4]))) # Team
             self.tableWidget.setItem(i,5, QTableWidgetItem(str(emp[8]))) # Inactive Date
             edit_button.clicked.connect(lambda clicked, j=i: win.show_employee_form(self.data[j]))
             edit_button.setFixedSize(QSize(40,30))
@@ -337,8 +357,12 @@ class PositionForm(QWidget):
     def form(self):
         self.layout = QFormLayout()
         self.total = QLineEdit()
+        total_valid = QIntValidator(self.total)
+        self.total.setValidator(total_valid)
         self.layout.addRow(QLabel("Total Positions: "), self.total)
         self.open = QLineEdit()
+        open_valid = QIntValidator(self.open)
+        self.open.setValidator(open_valid)
         self.layout.addRow(QLabel("Open Positions: "), self.open)
 
         self.back_btn = QPushButton("Back", self)
@@ -391,14 +415,18 @@ class EmployeeForm(QWidget):
 
     def form(self):
         self.layout = QFormLayout()
+        
         self.emp_id = QLineEdit()
+        emp_valid = QIntValidator(self.emp_id)
+        self.emp_id.setValidator(emp_valid)
         self.layout.addRow(QLabel("Employee ID: "), self.emp_id)
+
         self.first = QLineEdit()
         self.layout.addRow(QLabel("First Name: "), self.first)
         self.last = QLineEdit()
         self.layout.addRow(QLabel("Last Name: "), self.last)
         self.team = QLineEdit()
-        self.layout.addRow(QLabel("Team Number: "), self.team)
+        self.layout.addRow(QLabel("Team: "), self.team)
         self.start = QDateEdit(calendarPopup=True, displayFormat="yyyy-MM-dd")
         self.layout.addRow(QLabel("Start Date: "), self.start)
 
@@ -420,7 +448,6 @@ class EmployeeForm(QWidget):
         self.delete_btn = QPushButton("Delete", self)
         self.delete_btn.clicked.connect(self.delete_emp)
 
-        
         self.back_btn.setFixedSize(QSize(70,30))
         self.submit_btn.setFixedSize(QSize(70,30))
         self.delete_btn.setFixedSize(QSize(70,30))
@@ -473,7 +500,7 @@ class EmployeeForm(QWidget):
         try:
             employee_sql = '''
                 INSERT INTO employees (id, first_name, last_name, start_date, team, promoted, promoted_date, inactive, inactive_date)
-                VALUES (%s::int,%s, %s, %s, NULLIF(%s,'')::int, %s, NULLIF(%s,'1000-01-01')::date, %s, NULLIF(%s,'1000-01-01')::date)
+                VALUES (%s::int, %s, %s, %s, NULLIF(%s,''), %s, NULLIF(%s,'1000-01-01')::date, %s, NULLIF(%s,'1000-01-01')::date)
                 ON CONFLICT (id) DO UPDATE SET
                 (first_name, last_name, start_date, team, promoted, promoted_date, inactive, inactive_date) = (EXCLUDED.first_name, EXCLUDED.last_name, EXCLUDED.start_date, EXCLUDED.team, EXCLUDED.promoted, EXCLUDED.promoted_date, EXCLUDED.inactive, EXCLUDED.inactive_date);
             '''
@@ -533,7 +560,7 @@ def create_db():
             first_name VARCHAR(255) NOT NULL,
             last_name VARCHAR(255) NOT NULL,
             start_date DATE NOT NULL,
-            team INT,
+            team VARCHAR(255),
             promoted BOOLEAN,
             promoted_date DATE,
             inactive BOOLEAN,
@@ -546,18 +573,47 @@ def create_db():
             CONSTRAINT one_row_pos CHECK (pos_id)
         );
         REVOKE DELETE, TRUNCATE ON positions FROM public;
-        INSERT INTO employees (id, first_name, last_name, start_date, team, promoted, promoted_date, inactive, inactive_date) VALUES (1084321,'Rabia','Suleiman','2022-03-13', 1, FALSE, NULL, FALSE, NULL), 
-        (762256,'Isaac','Newton','2021-06-13', 1, FALSE, NULL, FALSE, NULL), 
-        (9396393,'Nikola','Tesla','2021-05-27', 33, FALSE, NULL, FALSE, NULL), 
-        (3620196,'Elon','Musk','2020-03-22', 33, FALSE, NULL, TRUE, '2022-01-11'), 
-        (322113,'Steve','Jobs','2020-11-22', 2, TRUE, '2021-08-11', FALSE, NULL), 
-        (4534234,'Hakeem','Olajuwon','2021-07-09', 34, FALSE, NULL, FALSE, NULL), 
-        (8821332,'Sigmund','Freud','2021-10-22', 3, FALSE, NULL, TRUE, '2022-07-13'), 
-        (2512093,'Martha','Steward','2021-10-22', 5, FALSE, NULL, FALSE, NULL), 
-        (554216,'Taylor','Swift','2022-02-22', 22, TRUE, '2022-06-01', FALSE, NULL), 
-        (9982109,'Michael','Jordan','2021-01-03', 23, FALSE, NULL, FALSE, NULL), 
-        (240824,'Kobe','Bryant','2008-08-24', 24, FALSE, NULL, TRUE, '2020-02-04'), 
-        (1024954,'Lebron','James','2021-08-04', 23, FALSE, NULL, FALSE, NULL); 
+        INSERT INTO employees (id, first_name, last_name, start_date, team, promoted, promoted_date, inactive, inactive_date) VALUES (1084321,'Rabia','Suleiman','2022-03-13', 'Intake-1', FALSE, NULL, FALSE, NULL), 
+        (762256,'Isaac','Newton','2021-06-13', 'Intake-1', FALSE, NULL, FALSE, NULL), 
+        (9396393,'Nikola','Tesla','2021-05-27', 'Permanency-3', FALSE, NULL, FALSE, NULL), 
+        (4532435,'Thomas','Edison','2022-03-04', 'Intake-2', FALSE, NULL, FALSE, NULL), 
+        (3620196,'Elon','Musk','2020-03-22', 'Permanency-2', FALSE, NULL, TRUE, '2022-01-11'), 
+        (322113,'Steve','Jobs','2020-11-22', 'Permanency-1', TRUE, '2021-08-11', FALSE, NULL), 
+        (4324324,'Walt','Disney','2020-11-22', 'Permanency-1', FALSE, NULL, FALSE, NULL), 
+        (654336456,'Sam','Walton','2020-11-22', 'Permanency-1', FALSE, NULL, FALSE, NULL), 
+        (8821332,'Sigmund','Freud','2021-10-22', 'Intake-2', FALSE, NULL, TRUE, '2022-07-13'), 
+        (2512093,'Mike','Tyson','2012-01-22', 'Permanency-1', FALSE, NULL, FALSE, NULL), 
+        (3324334,'Floyd','Mayweather','2021-07-29', 'Permanency-2', FALSE, NULL, FALSE, NULL), 
+        (55432353,'Manny','Pacquiao','2020-11-19', 'Intake-2', FALSE, NULL, FALSE, NULL), 
+        (11223415,'Muhammad','Ali','2021-10-11', 'Intake-1', FALSE, NULL, FALSE, NULL), 
+        (66334521,'George','Foreman','2014-11-08', 'Permanency-3', FALSE, NULL, FALSE, NULL), 
+        (54533333,'Conor','McGregor','2021-12-01', 'Intake-3', FALSE, NULL, FALSE, NULL), 
+        (54523454,'Martha','Steward','2021-10-22', 'Permanency-3', FALSE, NULL, FALSE, NULL), 
+        (35345662,'Jack','Black','2021-07-07', 'Permanency-1', FALSE, NULL, FALSE, NULL), 
+        (1231535,'Steve','Harvey','2015-03-06', 'Permanency-2', FALSE, NULL, FALSE, NULL), 
+        (12311535,'Samuel','Jackson','2013-01-26', 'Permanency-3', FALSE, NULL, FALSE, NULL), 
+        (35351511,'Arnold','Schwarzenegger','2014-12-11', 'Permanency-1', FALSE, NULL, FALSE, NULL), 
+        (43214155,'Sylvester','Stallone','2015-11-12', 'Intake-4', FALSE, NULL, FALSE, NULL), 
+        (33424325,'Johnny','Depp','2017-01-05', 'Permanency-3', FALSE, NULL, FALSE, NULL), 
+        (64265455,'Amber','Heard','2019-05-05', 'Intake-3', FALSE, NULL, FALSE, NULL), 
+        (5345356,'Will','Smith','2015-04-07', 'Intake-1', FALSE, NULL, FALSE, NULL), 
+        (4123456,'Jada','Smith','2018-02-26', 'Intake-3', FALSE, NULL, FALSE, NULL), 
+        (7587884,'Jaden','Smith','2020-05-11', 'Intake-2', FALSE, NULL, FALSE, NULL), 
+        (6534536,'Willow','Smith','2019-12-22', 'Intake-3', FALSE, NULL, FALSE, NULL), 
+        (554216,'Taylor','Swift','2022-02-22', 'Intake-2', TRUE, '2022-06-01', FALSE, NULL), 
+        (73457774,'Jimi','Hendrix','2019-07-22', 'Intake-1', FALSE, NULL, FALSE, NULL), 
+        (36463467,'Rolling','Stone','2016-06-14', 'Intake-3', FALSE, NULL, FALSE, NULL), 
+        (8685746,'Lil','Wayne','2012-08-19', 'Permanency-3', FALSE, NULL, FALSE, NULL), 
+        (5452367,'Snoop','Dogg','2012-04-20', 'Intake-2', FALSE, NULL, FALSE, NULL), 
+        (1234125,'Martha','Steward','2016-04-21', 'Intake-1', FALSE, NULL, FALSE, NULL), 
+        (3243432,'Marty','Byrd','2019-09-20', 'Permanency-1', FALSE, NULL, FALSE, NULL), 
+        (3454356,'Linda','Byrd','2019-09-20', 'Permanency-1', FALSE, NULL, FALSE, NULL), 
+        (7867574,'Larry','Bird','2017-10-22', 'Permanency-1', FALSE, NULL, FALSE, NULL), 
+        (9045615,'Magic','Johnson','2020-11-23', 'Intake-3', FALSE, NULL, FALSE, NULL), 
+        (4534234,'Hakeem','Olajuwon','2021-07-09', 'Permanency-1', FALSE, NULL, FALSE, NULL), 
+        (9982109,'Michael','Jordan','2021-01-03', 'Permanency-3', FALSE, NULL, FALSE, NULL), 
+        (240824,'Kobe','Bryant','2008-08-24', 'Permanency-2', FALSE, NULL, TRUE, '2020-02-04'), 
+        (1024954,'Lebron','James','2021-08-04', 'Intake-2', FALSE, NULL, FALSE, NULL); 
         INSERT INTO positions (total, open) VALUES (0, 0)
         """)
     except Exception as ex:
@@ -579,6 +635,5 @@ if __name__ == "__main__":
     # create_db()
     win = UserInterface()
     win.show()
-    
+
     sys.exit(app.exec())
-    
