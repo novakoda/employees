@@ -1,0 +1,1 @@
+pyinstaller --onefile .\employees.py -w -i .\aclogo.ico
